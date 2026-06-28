@@ -1,360 +1,133 @@
-import { useEffect } from "react";
-import type {
-  ActionFunctionArgs,
-  HeadersFunction,
-  LoaderFunctionArgs,
-} from "react-router";
-import { useFetcher } from "react-router";
+import { useEffect, useState } from "react";
+import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
+import { useFetcher, useLoaderData } from "react-router";
 import { useAppBridge } from "@shopify/app-bridge-react";
-import { authenticate } from "../shopify.server";
 import { boundary } from "@shopify/shopify-app-react-router/server";
+import { authenticate } from "../shopify.server";
+import { getSettings, upsertSettings } from "../services/settings.service.server";
+import { validateSettings } from "../utils/validation.server";
+import { DEFAULT_SETTINGS } from "../constants";
+import type { ScrollToTopSettingsInput } from "../types";
+import { SettingsDashboard } from "../components/dashboard/SettingsDashboard";
+
+// ─── Loader ───────────────────────────────────────────────────────────────────
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await authenticate.admin(request);
-
-  return null;
+  const { session } = await authenticate.admin(request);
+  const settings = await getSettings(session.shop);
+  return { settings };
 };
+
+// ─── Action ───────────────────────────────────────────────────────────────────
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { admin } = await authenticate.admin(request);
-  const color = ["Red", "Orange", "Yellow", "Green"][
-    Math.floor(Math.random() * 4)
-  ];
-  const response = await admin.graphql(
-    `#graphql
-      mutation populateProduct($product: ProductCreateInput!) {
-        productCreate(product: $product) {
-          product {
-            id
-            title
-            handle
-            status
-            variants(first: 10) {
-              edges {
-                node {
-                  id
-                  price
-                  barcode
-                  createdAt
-                }
-              }
-            }
-            demoInfo: metafield(namespace: "$app", key: "demo_info") {
-              jsonValue
-            }
-          }
-        }
-      }`,
-    {
-      variables: {
-        product: {
-          title: `${color} Snowboard`,
-          metafields: [
-            {
-              namespace: "$app",
-              key: "demo_info",
-              value: "Created by React Router Template",
-            },
-          ],
-        },
-      },
-    },
-  );
-  const responseJson = await response.json();
+  const { session } = await authenticate.admin(request);
 
-  const product = responseJson.data!.productCreate!.product!;
-  const variantId = product.variants.edges[0]!.node!.id!;
+  const body = await request.json().catch(() => null);
+  if (!body) return { ok: false as const, errors: { _root: "Invalid request body" } };
 
-  const variantResponse = await admin.graphql(
-    `#graphql
-    mutation shopifyReactRouterTemplateUpdateVariant($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
-      productVariantsBulkUpdate(productId: $productId, variants: $variants) {
-        productVariants {
-          id
-          price
-          barcode
-          createdAt
-        }
-      }
-    }`,
-    {
-      variables: {
-        productId: product.id,
-        variants: [{ id: variantId, price: "100.00" }],
-      },
-    },
-  );
+  if (body.intent === "reset") {
+    const settings = await upsertSettings(session.shop, DEFAULT_SETTINGS);
+    return { ok: true as const, settings, message: "Settings reset to defaults" };
+  }
 
-  const variantResponseJson = await variantResponse.json();
+  const { intent: _, ...data } = body;
+  const { valid, errors, parsed } = validateSettings(data);
 
-  const metaobjectResponse = await admin.graphql(
-    `#graphql
-    mutation shopifyReactRouterTemplateUpsertMetaobject($handle: MetaobjectHandleInput!, $metaobject: MetaobjectUpsertInput!) {
-      metaobjectUpsert(handle: $handle, metaobject: $metaobject) {
-        metaobject {
-          id
-          handle
-          title: field(key: "title") {
-            jsonValue
-          }
-          description: field(key: "description") {
-            jsonValue
-          }
-        }
-        userErrors {
-          field
-          message
-        }
-      }
-    }`,
-    {
-      variables: {
-        handle: {
-          type: "$app:example",
-          handle: "demo-entry",
-        },
-        metaobject: {
-          fields: [
-            { key: "title", value: "Demo Entry" },
-            {
-              key: "description",
-              value:
-                "This metaobject was created by the Shopify app template to demonstrate the metaobject API.",
-            },
-          ],
-        },
-      },
-    },
-  );
+  if (!valid) {
+    return { ok: false as const, errors };
+  }
 
-  const metaobjectResponseJson = await metaobjectResponse.json();
-
-  return {
-    product: responseJson!.data!.productCreate!.product,
-    variant:
-      variantResponseJson!.data!.productVariantsBulkUpdate!.productVariants,
-    metaobject:
-      metaobjectResponseJson!.data!.metaobjectUpsert!.metaobject,
-  };
+  const settings = await upsertSettings(session.shop, parsed);
+  return { ok: true as const, settings, message: "Settings saved" };
 };
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function toFormValues(s: Record<string, unknown>): ScrollToTopSettingsInput {
+  return {
+    isEnabled: Boolean(s.isEnabled),
+    iconType: (s.iconType as ScrollToTopSettingsInput["iconType"]) ?? "arrow",
+    buttonShape: (s.buttonShape as ScrollToTopSettingsInput["buttonShape"]) ?? "circle",
+    buttonSize: Number(s.buttonSize),
+    iconSize: Number(s.iconSize),
+    borderRadius: Number(s.borderRadius),
+    borderWidth: Number(s.borderWidth),
+    opacity: Number(s.opacity),
+    buttonColor: String(s.buttonColor),
+    iconColor: String(s.iconColor),
+    hoverBackgroundColor: String(s.hoverBackgroundColor),
+    hoverIconColor: String(s.hoverIconColor),
+    borderColor: String(s.borderColor),
+    shadowColor: String(s.shadowColor),
+    buttonPosition: (s.buttonPosition as ScrollToTopSettingsInput["buttonPosition"]) ?? "bottom-right",
+    bottomOffset: Number(s.bottomOffset),
+    sideOffset: Number(s.sideOffset),
+    showOnDesktop: Boolean(s.showOnDesktop),
+    showOnMobile: Boolean(s.showOnMobile),
+    hideAtTop: Boolean(s.hideAtTop),
+    scrollThreshold: Number(s.scrollThreshold),
+    scrollSpeed: (s.scrollSpeed as ScrollToTopSettingsInput["scrollSpeed"]) ?? "medium",
+    animationType: (s.animationType as ScrollToTopSettingsInput["animationType"]) ?? "fade",
+    enableShadow: Boolean(s.enableShadow),
+    shadowBlur: Number(s.shadowBlur),
+    shadowOpacity: Number(s.shadowOpacity),
+  };
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
 export default function Index() {
+  const { settings } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
-
   const shopify = useAppBridge();
-  const isLoading =
-    ["loading", "submitting"].includes(fetcher.state) &&
-    fetcher.formMethod === "POST";
 
+  const [values, setValues] = useState<ScrollToTopSettingsInput>(
+    () => toFormValues(settings as Record<string, unknown>),
+  );
+
+  // Sync state when server responds (save or reset)
   useEffect(() => {
-    if (fetcher.data?.product?.id) {
-      shopify.toast.show("Product created");
+    if (!fetcher.data) return;
+    if (fetcher.data.ok) {
+      shopify.toast.show(fetcher.data.message, { duration: 3000 });
+      setValues(toFormValues(fetcher.data.settings as Record<string, unknown>));
     }
-  }, [fetcher.data?.product?.id, shopify]);
+  }, [fetcher.data]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const generateProduct = () => fetcher.submit({}, { method: "POST" });
+  const isSaving = fetcher.state !== "idle";
+  const errors =
+    fetcher.data && !fetcher.data.ok ? fetcher.data.errors ?? {} : {};
+
+  const handleChange = <K extends keyof ScrollToTopSettingsInput>(
+    key: K,
+    value: ScrollToTopSettingsInput[K],
+  ) => setValues((prev) => ({ ...prev, [key]: value }));
+
+  const handleSave = () => {
+    fetcher.submit(
+      { intent: "save", ...values } as unknown as Record<string, string>,
+      { method: "post", encType: "application/json" },
+    );
+  };
+
+  const handleReset = () => {
+    fetcher.submit(
+      { intent: "reset" } as Record<string, string>,
+      { method: "post", encType: "application/json" },
+    );
+  };
 
   return (
-    <s-page heading="Shopify app template">
-      <s-button slot="primary-action" onClick={generateProduct}>
-        Generate a product
-      </s-button>
-
-      <s-section heading="Congrats on creating a new Shopify app 🎉">
-        <s-paragraph>
-          This embedded app template uses{" "}
-          <s-link
-            href="https://shopify.dev/docs/apps/tools/app-bridge"
-            target="_blank"
-          >
-            App Bridge
-          </s-link>{" "}
-          interface examples like an{" "}
-          <s-link href="/app/additional">additional page in the app nav</s-link>
-          , as well as an{" "}
-          <s-link
-            href="https://shopify.dev/docs/api/admin-graphql"
-            target="_blank"
-          >
-            Admin GraphQL
-          </s-link>{" "}
-          mutation demo, to provide a starting point for app development.
-        </s-paragraph>
-      </s-section>
-      <s-section heading="Get started with products">
-        <s-paragraph>
-          Generate a product with GraphQL and get the JSON output for that
-          product. Learn more about the{" "}
-          <s-link
-            href="https://shopify.dev/docs/api/admin-graphql/latest/mutations/productCreate"
-            target="_blank"
-          >
-            productCreate
-          </s-link>{" "}
-          mutation in our API references. Includes a product{" "}
-          <s-link
-            href="https://shopify.dev/docs/apps/build/custom-data/metafields"
-            target="_blank"
-          >
-            metafield
-          </s-link>{" "}
-          and{" "}
-          <s-link
-            href="https://shopify.dev/docs/apps/build/custom-data/metaobjects"
-            target="_blank"
-          >
-            metaobject
-          </s-link>
-          .
-        </s-paragraph>
-        <s-stack direction="inline" gap="base">
-          <s-button
-            onClick={generateProduct}
-            {...(isLoading ? { loading: true } : {})}
-          >
-            Generate a product
-          </s-button>
-          {fetcher.data?.product && (
-            <s-button
-              onClick={() => {
-                shopify.intents.invoke?.("edit:shopify/Product", {
-                  value: fetcher.data?.product?.id,
-                });
-              }}
-              target="_blank"
-              variant="tertiary"
-            >
-              Edit product
-            </s-button>
-          )}
-        </s-stack>
-        {fetcher.data?.product && (
-          <s-section heading="productCreate mutation">
-            <s-stack direction="block" gap="base">
-              <s-box
-                padding="base"
-                borderWidth="base"
-                borderRadius="base"
-                background="subdued"
-              >
-                <pre
-                  style={{
-                    margin: 0,
-                    whiteSpace: "pre-wrap",
-                    wordBreak: "break-word",
-                  }}
-                >
-                  <code>{JSON.stringify(fetcher.data.product, null, 2)}</code>
-                </pre>
-              </s-box>
-
-              <s-heading>productVariantsBulkUpdate mutation</s-heading>
-              <s-box
-                padding="base"
-                borderWidth="base"
-                borderRadius="base"
-                background="subdued"
-              >
-                <pre
-                  style={{
-                    margin: 0,
-                    whiteSpace: "pre-wrap",
-                    wordBreak: "break-word",
-                  }}
-                >
-                  <code>{JSON.stringify(fetcher.data.variant, null, 2)}</code>
-                </pre>
-              </s-box>
-
-              <s-heading>metaobjectUpsert mutation</s-heading>
-              <s-box
-                padding="base"
-                borderWidth="base"
-                borderRadius="base"
-                background="subdued"
-              >
-                <pre
-                  style={{
-                    margin: 0,
-                    whiteSpace: "pre-wrap",
-                    wordBreak: "break-word",
-                  }}
-                >
-                  <code>
-                    {JSON.stringify(fetcher.data.metaobject, null, 2)}
-                  </code>
-                </pre>
-              </s-box>
-            </s-stack>
-          </s-section>
-        )}
-      </s-section>
-
-      <s-section slot="aside" heading="App template specs">
-        <s-paragraph>
-          <s-text>Framework: </s-text>
-          <s-link href="https://reactrouter.com/" target="_blank">
-            React Router
-          </s-link>
-        </s-paragraph>
-        <s-paragraph>
-          <s-text>Interface: </s-text>
-          <s-link
-            href="https://shopify.dev/docs/api/app-home/using-polaris-components"
-            target="_blank"
-          >
-            Polaris web components
-          </s-link>
-        </s-paragraph>
-        <s-paragraph>
-          <s-text>API: </s-text>
-          <s-link
-            href="https://shopify.dev/docs/api/admin-graphql"
-            target="_blank"
-          >
-            GraphQL
-          </s-link>
-        </s-paragraph>
-        <s-paragraph>
-          <s-text>Custom data: </s-text>
-          <s-link
-            href="https://shopify.dev/docs/apps/build/custom-data"
-            target="_blank"
-          >
-            Metafields &amp; metaobjects
-          </s-link>
-        </s-paragraph>
-        <s-paragraph>
-          <s-text>Database: </s-text>
-          <s-link href="https://www.prisma.io/" target="_blank">
-            Prisma
-          </s-link>
-        </s-paragraph>
-      </s-section>
-
-      <s-section slot="aside" heading="Next steps">
-        <s-unordered-list>
-          <s-list-item>
-            Build an{" "}
-            <s-link
-              href="https://shopify.dev/docs/apps/getting-started/build-app-example"
-              target="_blank"
-            >
-              example app
-            </s-link>
-          </s-list-item>
-          <s-list-item>
-            Explore Shopify&apos;s API with{" "}
-            <s-link
-              href="https://shopify.dev/docs/apps/tools/graphiql-admin-api"
-              target="_blank"
-            >
-              GraphiQL
-            </s-link>
-          </s-list-item>
-        </s-unordered-list>
-      </s-section>
-    </s-page>
+    <SettingsDashboard
+      values={values}
+      onChange={handleChange}
+      onSave={handleSave}
+      onReset={handleReset}
+      isSaving={isSaving}
+      isLoading={false}
+      errors={errors as Record<string, string>}
+    />
   );
 }
 

@@ -1,0 +1,195 @@
+/* =================================================================
+   CS Scroll To Top — Storefront Styles
+   v1.0 | Vanilla CSS, no dependencies
+   ================================================================= */
+
+/* ── Base ──────────────────────────────────────────────────────── */
+
+#cs-scroll-to-top-btn {
+  /* Positioning */
+  position: fixed;
+  z-index: 999999;
+  bottom: var(--cs-bottom, 20px);
+
+  /* Layout */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+  line-height: 0;
+
+  /* Hidden until threshold is crossed */
+  visibility: hidden;
+  pointer-events: none;
+
+  /* Cursor & tap */
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-appearance: none;
+  appearance: none;
+  user-select: none;
+  background: none;
+  text-decoration: none;
+  font-family: inherit;
+}
+
+/* ── Position variants ─────────────────────────────────────────── */
+
+#cs-scroll-to-top-btn[data-position="bottom-right"] {
+  right: var(--cs-side, 20px);
+  left: auto;
+}
+
+#cs-scroll-to-top-btn[data-position="bottom-left"] {
+  left: var(--cs-side, 20px);
+  right: auto;
+}
+
+/* ── Visible state ─────────────────────────────────────────────── */
+
+#cs-scroll-to-top-btn.cs-stt-visible {
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* ── Focus ring (keyboard & assistive tech) ────────────────────── */
+
+#cs-scroll-to-top-btn:focus {
+  outline: none;
+}
+
+#cs-scroll-to-top-btn:focus-visible {
+  outline: 3px solid #005fcc;
+  outline-offset: 3px;
+}
+
+/* =================================================================
+   Animations
+   Each type transitions from its hidden state to visible when
+   the .cs-stt-visible class is added. The `visibility` transition
+   ensures the element only becomes pointer-interactive once shown,
+   and stays visible during the fade-out transition when hiding.
+   ================================================================= */
+
+/* ── Fade ──────────────────────────────────────────────────────── */
+
+#cs-scroll-to-top-btn[data-animation="fade"] {
+  opacity: 0;
+  transition:
+    opacity    0.3s ease,
+    visibility 0.3s ease;
+}
+
+#cs-scroll-to-top-btn[data-animation="fade"].cs-stt-visible {
+  opacity: var(--cs-opacity, 1);
+}
+
+/* ── Scale ─────────────────────────────────────────────────────── */
+
+#cs-scroll-to-top-btn[data-animation="scale"] {
+  opacity: 0;
+  transform: scale(0.4);
+  transition:
+    opacity    0.3s ease,
+    transform  0.3s ease,
+    visibility 0.3s ease;
+}
+
+#cs-scroll-to-top-btn[data-animation="scale"].cs-stt-visible {
+  opacity: var(--cs-opacity, 1);
+  transform: scale(1);
+}
+
+/* ── Slide ─────────────────────────────────────────────────────── */
+
+#cs-scroll-to-top-btn[data-animation="slide"] {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity    0.3s ease,
+    transform  0.3s ease,
+    visibility 0.3s ease;
+}
+
+#cs-scroll-to-top-btn[data-animation="slide"].cs-stt-visible {
+  opacity: var(--cs-opacity, 1);
+  transform: translateY(0);
+}
+
+/* ── Bounce ────────────────────────────────────────────────────── */
+
+@keyframes cs-stt-bounce-in {
+  0%   { transform: scale(0);    opacity: 0; }
+  55%  { transform: scale(1.2);  opacity: 1; }
+  75%  { transform: scale(0.92);             }
+  100% { transform: scale(1);                }
+}
+
+#cs-scroll-to-top-btn[data-animation="bounce"] {
+  opacity: 0;
+  transform: scale(0);
+  /* visibility is instant so animation starts immediately when shown */
+  transition: visibility 0s;
+}
+
+#cs-scroll-to-top-btn[data-animation="bounce"].cs-stt-visible {
+  animation: cs-stt-bounce-in 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* ── Zoom ──────────────────────────────────────────────────────── */
+
+#cs-scroll-to-top-btn[data-animation="zoom"] {
+  opacity: 0;
+  transform: scale(0.2);
+  transition:
+    opacity    0.25s ease,
+    transform  0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+    visibility 0.25s ease;
+}
+
+#cs-scroll-to-top-btn[data-animation="zoom"].cs-stt-visible {
+  opacity: var(--cs-opacity, 1);
+  transform: scale(1);
+}
+
+/* ── None (instant) ────────────────────────────────────────────── */
+
+#cs-scroll-to-top-btn[data-animation="none"] {
+  opacity: 0;
+  transition: visibility 0s;
+}
+
+#cs-scroll-to-top-btn[data-animation="none"].cs-stt-visible {
+  opacity: var(--cs-opacity, 1);
+}
+
+/* =================================================================
+   Responsive: hide on specific device types
+   data-hide-mobile / data-hide-desktop are set by JS from settings.
+   ================================================================= */
+
+@media (max-width: 768px) {
+  #cs-scroll-to-top-btn[data-hide-mobile="true"] {
+    display: none !important;
+  }
+}
+
+@media (min-width: 769px) {
+  #cs-scroll-to-top-btn[data-hide-desktop="true"] {
+    display: none !important;
+  }
+}
+
+/* =================================================================
+   Reduced motion: respect system preference
+   ================================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  #cs-scroll-to-top-btn,
+  #cs-scroll-to-top-btn[data-animation] {
+    transition-duration: 0.01ms !important;
+    animation-duration:  0.01ms !important;
+  }
+}

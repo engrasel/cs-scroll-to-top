@@ -1,0 +1,33 @@
+{% comment %}
+  CS Scroll To Top — App Embed Block
+  Target: body (app embed) — merchants enable this under
+  Online Store › Themes › Customize › App embeds.
+
+  Settings are fetched at runtime from the app's /proxy/settings endpoint.
+  No theme code changes or jQuery required.
+{% endcomment %}
+
+<!-- CS Scroll To Top App Embed Loaded -->
+<div
+  id="cs-scroll-to-top-root"
+  data-app-url="{{ app.url }}"
+  data-shop="{{ shop.permanent_domain }}"
+  aria-hidden="true"
+  style="display:none;"
+></div>
+
+<link rel="stylesheet" href="{{ 'scroll-to-top.css' | asset_url }}">
+<script src="{{ 'scroll-to-top.js' | asset_url }}" defer></script>
+
+{% schema %}
+{
+  "name": "Scroll To Top",
+  "target": "body",
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "The scroll-to-top button is configured in the CS Scroll To Top app. Changes made in the app are reflected on your storefront automatically."
+    }
+  ]
+}
+{% endschema %}

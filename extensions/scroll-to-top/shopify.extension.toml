@@ -1,0 +1,5 @@
+api_version = "2026-07"
+name = "Scroll To Top"
+handle = "scroll-to-top"
+type = "theme_app_extension"
+uid = "9620c0a1-f53a-5c66-3c4c-571cdd52d2072a11c5a1"

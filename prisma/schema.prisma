@@ -2,15 +2,13 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
-// Note that some adapters may set a maximum length for the String type by default, please ensure your strings are long
-// enough when changing adapters.
-// See https://www.prisma.io/docs/orm/reference/prisma-schema-reference#string for more information
 datasource db {
-  provider = "sqlite"
-  url      = "file:dev.sqlite"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Session {
@@ -31,4 +29,45 @@ model Session {
   emailVerified Boolean?  @default(false)
   refreshToken        String?
   refreshTokenExpires DateTime?
+}
+
+model ScrollToTopSettings {
+  id                   String   @id @default(cuid())
+  shop                 String   @unique
+  // General
+  isEnabled            Boolean  @default(true)
+  // Design
+  iconType             String   @default("arrow")
+  buttonShape          String   @default("circle")
+  buttonSize           Int      @default(50)
+  iconSize             Int      @default(20)
+  borderRadius         Int      @default(50)
+  borderWidth          Int      @default(0)
+  opacity              Float    @default(1.0)
+  // Colors
+  buttonColor          String   @default("#000000")
+  iconColor            String   @default("#ffffff")
+  hoverBackgroundColor String   @default("#333333")
+  hoverIconColor       String   @default("#ffffff")
+  borderColor          String   @default("#000000")
+  shadowColor          String   @default("#000000")
+  // Position
+  buttonPosition       String   @default("bottom-right")
+  bottomOffset         Int      @default(20)
+  sideOffset           Int      @default(20)
+  // Visibility
+  showOnDesktop        Boolean  @default(true)
+  showOnMobile         Boolean  @default(true)
+  hideAtTop            Boolean  @default(false)
+  // Scroll
+  scrollThreshold      Int      @default(300)
+  scrollSpeed          String   @default("medium")
+  // Animation
+  animationType        String   @default("fade")
+  // Shadow
+  enableShadow         Boolean  @default(false)
+  shadowBlur           Int      @default(10)
+  shadowOpacity        Float    @default(0.3)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 }
