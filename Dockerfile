@@ -48,6 +48,10 @@ RUN npm ci --omit=dev && npm cache clean --force
 COPY --from=builder /app/build ./build
 COPY --from=builder /app/public ./public
 
+# startup script: generates Prisma client, retries migrations, then starts server
+COPY start.sh ./start.sh
+RUN chmod +x ./start.sh
+
 EXPOSE 3000
 
-CMD ["npm", "run", "docker-start"]
+CMD ["./start.sh"]
