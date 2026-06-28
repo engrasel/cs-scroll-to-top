@@ -14,7 +14,16 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     );
   }
 
-  const s = await getSettings(shop);
+  let s;
+  try {
+    s = await getSettings(shop);
+  } catch (err) {
+    console.error("[CS Scroll To Top] Failed to load settings from database:", err);
+    return Response.json(
+      { error: "Failed to load settings" },
+      { status: 500, headers: corsHeaders("*") },
+    );
+  }
 
   return Response.json(
     {

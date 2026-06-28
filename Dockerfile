@@ -16,6 +16,10 @@ COPY prisma ./prisma
 
 RUN npm ci
 
+# Generate Prisma client before TypeScript compilation so types are available.
+# Prisma v5+ no longer auto-generates via postinstall.
+RUN npx prisma generate
+
 COPY . .
 
 RUN npm run build
