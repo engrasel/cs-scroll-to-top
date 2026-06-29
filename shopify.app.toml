@@ -1,7 +1,7 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "11feaacaf327f4ed3b165975fb34ae3c"
-name = "CS Scroll To Top"
+name = "UpScroll – Scroll to Top"
 application_url = "https://cs-scroll-to-top-production.up.railway.app"
 embedded = true
 

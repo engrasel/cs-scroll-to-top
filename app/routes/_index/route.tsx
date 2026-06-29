@@ -19,7 +19,7 @@ export default function Index() {
   return (
     <div className={styles.index}>
       <div className={styles.content}>
-        <h1 className={styles.heading}>CS Scroll To Top</h1>
+        <h1 className={styles.heading}>UpScroll – Scroll to Top</h1>
         <p className={styles.text}>
           Add a customisable scroll-to-top button to your Shopify store.
         </p>

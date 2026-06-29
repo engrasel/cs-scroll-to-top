@@ -1,5 +1,5 @@
 /* =================================================================
-   CS Scroll To Top — Storefront Script
+   UpScroll – Scroll to Top — Storefront Script
    v1.0 | Vanilla JS, no dependencies, no jQuery
    ================================================================= */
 
@@ -327,7 +327,7 @@
   function init() {
     var root = document.getElementById(ROOT_ID);
     if (!root) {
-      console.error('[CS Scroll To Top] Root element not found — verify the app embed is enabled in the Shopify theme editor.');
+      console.error('[UpScroll] Root element not found — verify the app embed is enabled in the Shopify theme editor.');
       return;
     }
 
@@ -340,7 +340,7 @@
       // {{ app.url }} is empty — shopify app dev may not be running, the tunnel
       // URL hasn't propagated to the Partner Dashboard yet, or the app URL hasn't
       // been deployed. Render with defaults so the button still appears.
-      console.error('[CS Scroll To Top] data-app-url is empty ({{ app.url }} did not resolve). Run "shopify app dev" or deploy the app. Rendering with defaults.');
+      console.error('[UpScroll] data-app-url is empty ({{ app.url }} did not resolve). Run "shopify app dev" or deploy the app. Rendering with defaults.');
       setup({});
       return;
     }
@@ -356,7 +356,7 @@
       .catch(function (err) {
         // Settings unavailable (network error, server error, CORS on 500 response).
         // Render with defaults so the button always appears regardless of API health.
-        console.error('[CS Scroll To Top] Settings fetch failed (' + err.message + '). Rendering with default settings.');
+        console.error('[UpScroll] Settings fetch failed (' + err.message + '). Rendering with default settings.');
         setup({});
       });
   }
