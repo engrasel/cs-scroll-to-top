@@ -15,8 +15,15 @@ if (
   delete process.env.HOST;
 }
 
-const host = new URL(process.env.SHOPIFY_APP_URL || "http://localhost")
-  .hostname;
+// Normalise SHOPIFY_APP_URL: Railway injects Variables during the Nixpacks
+// build phase. If the value has no protocol, new URL() throws TypeError and
+// the entire Vite build fails before a single file is compiled.
+const rawAppUrl = (process.env.SHOPIFY_APP_URL || "").trim();
+const appUrlForVite = rawAppUrl
+  ? rawAppUrl.startsWith("http") ? rawAppUrl : `https://${rawAppUrl}`
+  : "http://localhost";
+
+const host = new URL(appUrlForVite).hostname;
 
 let hmrConfig;
 if (host === "localhost") {
