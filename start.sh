@@ -1,18 +1,14 @@
 #!/bin/sh
-# Production startup script for Railway.
-# Retries prisma migrate deploy until the database is reachable, then starts the server.
+# Production startup: wait for DB, run migrations, start server.
 
-echo "[startup] Generating Prisma client..."
-npx prisma generate
-
-echo "[startup] Waiting for database and running migrations..."
+echo "[startup] Running database migrations..."
 MAX_RETRIES=12
 RETRIES=0
 
 until npx prisma migrate deploy; do
   RETRIES=$((RETRIES + 1))
   if [ "$RETRIES" -ge "$MAX_RETRIES" ]; then
-    echo "[startup] FATAL: Migrations failed after $MAX_RETRIES attempts. Check DATABASE_URL and PostgreSQL service health."
+    echo "[startup] FATAL: Migrations failed after $MAX_RETRIES attempts. Check DATABASE_URL."
     exit 1
   fi
   echo "[startup] Migration attempt $RETRIES/$MAX_RETRIES failed. Retrying in 5 seconds..."
